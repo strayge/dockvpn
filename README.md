@@ -2,8 +2,10 @@
 
 **the original project - [jpetazzo/dockvpn](https://github.com/jpetazzo/dockvpn)** and it has its own [automatic build on dockerhub](https://hub.docker.com/r/jpetazzo/dockvpn/). 
  
-##Quick instructions:
-###With git
+## Quick instructions:
+
+### With git
+
 Parameters may be setted via environment variables or edited in `Dockerfile`.
 Example below with environment variables. All `-e` parameters may be ommited.
 ```bash
@@ -11,13 +13,20 @@ git clone https://github.com/strayge/dockvpn.git
 cd dockvpn
 docker build -t dockvpn .
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-docker run -ti -d -v $DIR/configs:/etc/openvpn --net=host --privileged --restart unless-stopped --name dockvpn -e PORT_TCP=1195 -e PORT_UDP=1195 -e PORT_CONTROL=8000 -e CONTROL_USERNAME=username123 -e CONTROL_PASSWORD=password456 -e EXTERNAL_ADDRESS="yourdomain.com" dockvpn
+
+docker run -ti -d -v $DIR/configs:/etc/openvpn --net=host --privileged --restart unless-stopped \
+--name dockvpn -e PORT_TCP=1195 -e PORT_UDP=1195 -e PORT_CONTROL=8000 -e CONTROL_USERNAME=username123 \
+-e CONTROL_PASSWORD=password456 -e EXTERNAL_ADDRESS="yourdomain.com" dockvpn
 ```
 
-###With docked hub
+### With docked hub
+
 ```bash
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-docker run -ti -d -v $DIR/configs:/etc/openvpn --net=host --privileged --restart unless-stopped --name dockvpn -e PORT_TCP=1195 -e PORT_UDP=1195 -e PORT_CONTROL=8000 -e CONTROL_USERNAME=username123 -e CONTROL_PASSWORD=password456 -e EXTERNAL_ADDRESS="yourdomain.com" strayge/dockvpn
+
+docker run -ti -d -v $DIR/configs:/etc/openvpn --net=host --privileged --restart unless-stopped \
+--name dockvpn -e PORT_TCP=1195 -e PORT_UDP=1195 -e PORT_CONTROL=8000 -e CONTROL_USERNAME=username123 \
+-e CONTROL_PASSWORD=password456 -e EXTERNAL_ADDRESS="yourdomain.com" strayge/dockvpn
 ```
 
 Config files available at web interface.
@@ -43,7 +52,7 @@ again, all your configuration preserved.
 
 ## How does it work?
 
-When the `jpetazzo/openvpn` image is started, it generates:
+When the `strayge/dockvpn` image is started, it generates:
 
 - Diffie-Hellman parameters,
 - a private key,
