@@ -71,7 +71,7 @@ cat > openvpn_udp.conf <<EOF
 proto udp
 port $PORT_UDP
 dev tun
-server 192.168.255.0 255.255.255.128
+server 192.168.255.128 255.255.255.128
 verb 4
 persist-key
 persist-tun
