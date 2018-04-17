@@ -43,6 +43,8 @@ proto tcp
 nobind
 persist-key
 persist-tun
+cipher AES-256-CBC
+auth SHA256
 remote-cert-tls server
 comp-lzo
 verb 4

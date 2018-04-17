@@ -48,6 +48,8 @@ server 192.168.255.0 255.255.255.128
 verb 4
 persist-key
 persist-tun
+cipher AES-256-CBC
+auth SHA256
 tls-server
 tls-timeout 120
 dh /etc/openvpn/dh.pem
@@ -75,6 +77,8 @@ server 192.168.255.128 255.255.255.128
 verb 4
 persist-key
 persist-tun
+cipher AES-256-CBC
+auth SHA256
 tls-server
 tls-timeout 120
 dh /etc/openvpn/dh.pem
