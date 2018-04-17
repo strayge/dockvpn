@@ -6,6 +6,21 @@ set -e
 [ -n $PORT_UDP ] ||
     PORT_UDP=1194
 
+if [ $SSL = "0" ] || [ $SSL = "False" ] || [ $SSL = "false" ]
+then
+    SSL_USED=0
+else
+    SSL_USED=1
+fi
+
+if [ -n "$CONTROL_USERNAME" ] && [ -n "$CONTROL_PASSWORD" ]
+then
+    WEB_USED=1
+else
+    WEB_USED=0
+fi
+
+
 [ -d /dev/net ] ||
     mkdir -p /dev/net
 [ -c /dev/net/tun ] ||
@@ -80,10 +95,36 @@ user nobody
 group nogroup
 EOF
 
+if [ -z $PORT_CONTROL ]
+then
+    PORT_CONTROL=8000
+fi
+
+if [ -z $EXTERNAL_ADDRESS ]
+then
+    EXTERNAL_ADDRESS=$(curl whatismyip.akamai.com)
+fi
+
 iptables -t nat -A POSTROUTING -s 192.168.255.0/24 -o eth0 -j MASQUERADE
 
+if [ -n "$EXTERNAL_ADDRESS" ] && [ "$WEB_USED" = "1" ] && [ "$SSL_USED" = "1" ]
+then
+    echo "Web interface should be accessed as https://$EXTERNAL_ADDRESS:$PORT_CONTROL/"
+fi
+
+if [ -n "$EXTERNAL_ADDRESS" ] && [ "$WEB_USED" = "1" ] && [ "$SSL_USED" = "0" ]
+then
+    echo "Web interface should be accessed as https://$EXTERNAL_ADDRESS:$PORT_CONTROL/"
+fi
+
+if [ "$WEB_USED" = "0" ]
+then
+    echo "Credentials for web service not provided. Web interface will not be enabled!"
+fi
+
 touch /etc/openvpn/logs/stdout_openvpn_tcp.log /etc/openvpn/logs/stdout_openvpn_udp.log /etc/openvpn/logs/stdout_web_control.log
-while true ; do openvpn openvpn_tcp.conf ; done >> /etc/openvpn/logs/stdout_openvpn_tcp.log &
-while true ; do openvpn openvpn_udp.conf ; done >> /etc/openvpn/logs/stdout_openvpn_udp.log &
-while true ; do python2.7 /usr/local/sbin/web_control.py ; done >> /etc/openvpn/logs/stdout_web_control.log &
+while true ; do openvpn openvpn_tcp.conf ; done > /etc/openvpn/logs/stdout_openvpn_tcp.log &
+while true ; do openvpn openvpn_udp.conf ; done > /etc/openvpn/logs/stdout_openvpn_udp.log &
+while true ; do python2.7 /usr/local/sbin/web_control.py ; done > /etc/openvpn/logs/stdout_web_control.log &
+
 tail -F /etc/openvpn/logs/stdout_*.log

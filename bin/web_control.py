@@ -6,6 +6,7 @@ import urlparse
 import os
 import base64
 import ssl
+import time
 
 
 if 'PORT_CONTROL' in os.environ.keys() and int(os.environ['PORT_CONTROL']):
@@ -25,7 +26,9 @@ SSL_KEY_FILENAME = "/etc/openvpn/server.key"
 USERNAME = os.environ['CONTROL_USERNAME'] if 'CONTROL_USERNAME' in os.environ.keys() else None
 PASSWORD = os.environ['CONTROL_PASSWORD'] if 'CONTROL_PASSWORD' in os.environ.keys() else None
 if not USERNAME or not PASSWORD:
-    print('Credentials for web service not provided. Web interface will not be enabled!')
+    #print('Credentials for web service not provided. Web interface will not be enabled!')
+    # prevent restart service
+    time.sleep(3600)
     exit()
 
 hashed_key = base64.b64encode(USERNAME + ":" + PASSWORD)
