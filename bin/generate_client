@@ -1,0 +1,74 @@
+#!/bin/sh
+EASYRSA_DIR=/etc/easyrsa
+OPENVPN_DIR=/etc/openvpn
+
+[ -n $PORT_TCP ] ||
+    PORT_TCP=443
+[ -n $PORT_UDP ] ||
+    PORT_UDP=1194
+
+[ $EXTERNAL_ADDRESS ] ||
+    EXTERNAL_ADDRESS=$(curl whatismyip.akamai.com)
+
+[ "$EXTERNAL_ADDRESS" ] || {
+    echo "Sorry, I could not figure out my public IP address."
+    echo "(I use http://whatismyip.akamai.com/ for that purpose.)"
+    exit 1
+}
+
+NAME=$1
+[ "$NAME" ] || {
+    echo "Usage: generate_client <name>"
+    exit 1
+}
+
+if [ -f "$OPENVPN_DIR/pki/private/\$NAME.key" ];
+then
+ echo "This name already exists. Try another."
+ exit 1
+fi
+cd "$OPENVPN_DIR/"
+"$EASYRSA_DIR/easyrsa" --batch build-client-full "$NAME" nopass
+
+mkdir -p "$OPENVPN_DIR/clients"
+TCP_CONFIG="$OPENVPN_DIR/clients/${NAME}_tcp.ovpn"
+UDP_CONFIG="$OPENVPN_DIR/clients/${NAME}_udp.ovpn"
+
+###### TCP config ######
+cat > $TCP_CONFIG << END
+client
+remote $EXTERNAL_ADDRESS $PORT_TCP
+dev tun
+proto tcp
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+comp-lzo
+verb 4
+key-direction 1
+<ca>
+`cat "$OPENVPN_DIR/ca.crt"`
+</ca>
+<tls-auth>
+`cat "$OPENVPN_DIR/ta.key"`
+</tls-auth>
+<cert>
+`cat "$OPENVPN_DIR/pki/issued/$NAME.crt"`
+</cert>
+<key>
+`cat "$OPENVPN_DIR/pki/private/$NAME.key"`
+</key>
+END
+
+###### UDP config ######
+cp $TCP_CONFIG $UDP_CONFIG
+sed -i "s/remote $EXTERNAL_ADDRESS $PORT_TCP/remote $EXTERNAL_ADDRESS $PORT_UDP/" $UDP_CONFIG
+sed -i 's/proto tcp/proto udp/' $UDP_CONFIG
+
+echo "
+=========================================================
+Configs saved at:
+ $TCP_CONFIG
+ $UDP_CONFIG
+========================================================"

@@ -1,0 +1,34 @@
+#!/bin/sh
+EASYRSA_DIR=/etc/easyrsa
+OPENVPN_DIR=/etc/openvpn
+
+NAME=$1
+[ "$NAME" ] || {
+    echo "Usage: revoke_client <name>"
+    exit 1
+}
+
+if [ "$NAME" = "ca" ]; then
+ echo "Wrong client name"
+ exit 1
+fi
+
+if [ "$NAME" = "server" ]; then
+ echo "Wrong client name"
+ exit 1
+fi
+
+cd $OPENVPN_DIR
+"$EASYRSA_DIR/easyrsa" --batch revoke $NAME
+rm "$OPENVPN_DIR/pki/reqs/$NAME.req"
+rm "$OPENVPN_DIR/pki/issued/$NAME.crt"
+rm "$OPENVPN_DIR/pki/private/$NAME.key"
+
+"$EASYRSA_DIR/easyrsa" --batch --days=7300 gen-crl
+cp "$OPENVPN_DIR/pki/crl.pem" "$OPENVPN_DIR/"
+
+rm "$OPENVPN_DIR/clients/${NAME}_tcp.ovpn"
+rm "$OPENVPN_DIR/clients/${NAME}_udp.ovpn"
+
+#sudo systemctl restart openvpn@openvpn_tcp.service
+#sudo systemctl restart openvpn@openvpn_udp.service

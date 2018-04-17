@@ -1,110 +1,89 @@
 #!/bin/sh
 set -e
 
+[ -n $PORT_TCP ] ||
+    PORT_TCP=443
+[ -n $PORT_UDP ] ||
+    PORT_UDP=1194
+
 [ -d /dev/net ] ||
     mkdir -p /dev/net
 [ -c /dev/net/tun ] ||
     mknod /dev/net/tun c 10 200
 
 cd /etc/openvpn
-# This file tells `serveconfig` that there is a config there
-touch placeholder
-[ -f dh.pem ] ||
-    openssl dhparam -out dh.pem 1024
-[ -f key.pem ] ||
-    openssl genrsa -out key.pem 2048
-chmod 600 key.pem
-[ -f csr.pem ] ||
-    openssl req -new -key key.pem -out csr.pem -subj /CN=OpenVPN/
-[ -f cert.pem ] ||
-    openssl x509 -req -in csr.pem -out cert.pem -signkey key.pem -days 24855
+if ! [ -f ca.crt ]; then
+    /etc/easyrsa/easyrsa --batch init-pki
+    /etc/easyrsa/easyrsa --batch --days=7300 --keysize=4096 --req-cn="DockVPN CA" build-ca nopass
+    /etc/easyrsa/easyrsa --batch --days=7300 gen-crl
+    /etc/easyrsa/easyrsa --batch --keysize=4096 --req-cn="DockVPN Server" gen-req server nopass
+    /etc/easyrsa/easyrsa --batch --days=7300 sign-req server server
+    # TODO: increase
+    /etc/easyrsa/easyrsa --batch --keysize=1024 gen-dh
+    openvpn --genkey --secret ta.key
+    cp pki/ca.crt pki/issued/server.crt pki/private/server.key pki/crl.pem pki/dh.pem /etc/openvpn
+    mkdir -p /etx/openvpn/clients
+    mkdir -p /etc/openvpn/logs
+fi
 
-[ -f tcp443.conf ] || cat >tcp443.conf <<EOF
-server 192.168.255.0 255.255.255.128
-verb 3
-duplicate-cn
-key key.pem
-ca cert.pem
-cert cert.pem
-dh dh.pem
-keepalive 10 60
-persist-key
-persist-tun
-push "dhcp-option DNS 8.8.8.8"
-push "dhcp-option DNS 8.8.4.4"
-
-proto tcp-server
-port 443
-dev tun443
-status openvpn-status-443.log
-EOF
-
-[ -f udp1194.conf ] || cat >udp1194.conf <<EOF
-server 192.168.255.128 255.255.255.128
-verb 3
-duplicate-cn
-key key.pem
-ca cert.pem
-cert cert.pem
-dh dh.pem
-keepalive 10 60
-persist-key
-persist-tun
-push "dhcp-option DNS 8.8.8.8"
-push "dhcp-option DNS 8.8.4.4"
-
-proto udp
-port 1194
-dev tun1194
-status openvpn-status-1194.log
-EOF
-
-MY_IP_ADDR=$(curl -s http://myip.enix.org/REMOTE_ADDR)
-[ "$MY_IP_ADDR" ] || {
-    echo "Sorry, I could not figure out my public IP address."
-    echo "(I use http://myip.enix.org/REMOTE_ADDR/ for that purpose.)"
-    exit 1
-}
-
-[ -f client.ovpn ] || cat >client.ovpn <<EOF
-client
-nobind
+[ -f openvpn_tcp.conf ] || cat > openvpn_tcp.conf <<EOF
+proto tcp
+port $PORT_TCP
 dev tun
-redirect-gateway def1
-
-<key>
-`cat key.pem`
-</key>
-<cert>
-`cat cert.pem`
-</cert>
-<ca>
-`cat cert.pem`
-</ca>
-<dh>
-`cat dh.pem`
-</dh>
-
-<connection>
-remote $MY_IP_ADDR 1194 udp
-</connection>
-
-<connection>
-remote $MY_IP_ADDR 443 tcp-client
-</connection>
+server 192.168.255.0 255.255.255.128
+verb 4
+persist-key
+persist-tun
+tls-server
+tls-timeout 120
+dh /etc/openvpn/dh.pem
+ca /etc/openvpn/ca.crt
+cert /etc/openvpn/server.crt
+key /etc/openvpn/server.key
+crl-verify /etc/openvpn/crl.pem
+tls-auth /etc/openvpn/ta.key 0
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 8.8.4.4"
+comp-lzo
+keepalive 50 300
+status-version 3
+log-append /etc/openvpn/logs/tcp-server.log
+status /etc/openvpn/logs/tcp-status.log 1
+user nobody
+group nogroup
 EOF
 
-[ -f client.http ] || cat >client.http <<EOF
-HTTP/1.0 200 OK
-Content-Type: application/x-openvpn-profile
-Content-Length: `wc -c client.ovpn`
-
-`cat client.ovpn`
+[ -f openvpn_udp.conf ] || cat > openvpn_udp.conf <<EOF
+proto udp
+port $PORT_UDP
+dev tun
+server 192.168.255.0 255.255.255.128
+verb 4
+persist-key
+persist-tun
+tls-server
+tls-timeout 120
+dh /etc/openvpn/dh.pem
+ca /etc/openvpn/ca.crt
+cert /etc/openvpn/server.crt
+key /etc/openvpn/server.key
+crl-verify /etc/openvpn/crl.pem
+tls-auth /etc/openvpn/ta.key 0
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 8.8.4.4"
+comp-lzo
+keepalive 50 300
+status-version 3
+log-append /etc/openvpn/logs/udp-server.log
+status /etc/openvpn/logs/udp-status.log 1
+user nobody
+group nogroup
 EOF
 
 iptables -t nat -A POSTROUTING -s 192.168.255.0/24 -o eth0 -j MASQUERADE
 
-touch tcp443.log udp1194.log http8080.log
-while true ; do openvpn tcp443.conf ; done >> tcp443.log &
-while true ; do openvpn udp1194.conf ; done >> udp1194.log &
-tail -F *.log
+touch /etc/openvpn/logs/stdout_openvpn_tcp.log /etc/openvpn/logs/stdout_openvpn_udp.log /etc/openvpn/logs/stdout_web_control.log
+while true ; do openvpn openvpn_tcp.conf ; done >> /etc/openvpn/logs/stdout_openvpn_tcp.log &
+while true ; do openvpn openvpn_udp.conf ; done >> /etc/openvpn/logs/stdout_openvpn_udp.log &
+while true ; do python2.7 /usr/local/sbin/web_control.py ; done >> /etc/openvpn/logs/stdout_web_control.log &
+tail -F /etc/openvpn/logs/stdout_*.log
