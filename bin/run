@@ -94,6 +94,8 @@ user nobody
 group nogroup
 EOF
 
+chmod -R +r /etc/openvpn
+
 if [ -z $PORT_CONTROL ]
 then
     PORT_CONTROL=8000
