@@ -22,11 +22,11 @@ CLIENTS_PATH = "/etc/openvpn/clients"
 SSL_CRT_FILENAME = "/etc/openvpn/server.crt"
 SSL_KEY_FILENAME = "/etc/openvpn/server.key"
 
-DEFAULT_USERNAME = "strayge"
-DEFAULT_PASSWORD = "changeitpassword"
-
-USERNAME = os.environ['CONTROL_USERNAME'] if 'CONTROL_USERNAME' in os.environ.keys() else DEFAULT_USERNAME
-PASSWORD = os.environ['CONTROL_PASSWORD'] if 'CONTROL_PASSWORD' in os.environ.keys() else DEFAULT_PASSWORD
+USERNAME = os.environ['CONTROL_USERNAME'] if 'CONTROL_USERNAME' in os.environ.keys() else None
+PASSWORD = os.environ['CONTROL_PASSWORD'] if 'CONTROL_PASSWORD' in os.environ.keys() else None
+if not USERNAME or not PASSWORD:
+    print('Credentials for web service not provided. Web interface will not be enabled!')
+    exit()
 
 hashed_key = base64.b64encode(USERNAME + ":" + PASSWORD)
 
@@ -227,5 +227,8 @@ class Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 httpd = SocketServer.TCPServer(("", PORT), Handler)
 if SSL:
     httpd.socket = ssl.wrap_socket (httpd.socket, certfile=SSL_CRT_FILENAME, keyfile=SSL_KEY_FILENAME, server_side=True)
-print('starting web_control daemon...')
+    print('starting web_control daemon with ssl...')
+else:
+    print('starting web_control daemon without ssl...')
+
 httpd.serve_forever()
