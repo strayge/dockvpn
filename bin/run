@@ -33,7 +33,6 @@ if ! [ -f ca.crt ]; then
     /etc/easyrsa/easyrsa --batch --days=7300 gen-crl
     /etc/easyrsa/easyrsa --batch --keysize=4096 --req-cn="DockVPN Server" gen-req server nopass
     /etc/easyrsa/easyrsa --batch --days=7300 sign-req server server
-    # TODO: increase
     /etc/easyrsa/easyrsa --batch --keysize=4096 gen-dh
     openvpn --genkey --secret ta.key
     cp pki/ca.crt pki/issued/server.crt pki/private/server.key pki/crl.pem pki/dh.pem /etc/openvpn
@@ -41,7 +40,7 @@ if ! [ -f ca.crt ]; then
     mkdir -p /etc/openvpn/logs
 fi
 
-[ -f openvpn_tcp.conf ] || cat > openvpn_tcp.conf <<EOF
+cat > openvpn_tcp.conf <<EOF
 proto tcp
 port $PORT_TCP
 dev tun
@@ -68,7 +67,7 @@ user nobody
 group nogroup
 EOF
 
-[ -f openvpn_udp.conf ] || cat > openvpn_udp.conf <<EOF
+cat > openvpn_udp.conf <<EOF
 proto udp
 port $PORT_UDP
 dev tun
