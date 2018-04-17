@@ -103,7 +103,7 @@ def status_page():
         </tr></thead><tbody>
         """
         for line in content:
-                parts = line.split('      ')
+                parts = line.split('\t')
                 if parts[0] != 'CLIENT_LIST':
                     continue
                 name = parts[1]
@@ -113,12 +113,12 @@ def status_page():
                 uploaded_kb = int(parts[5]) // 1024
                 connected = parts[6]
                 out += '<tr>'
-                out += '<td>' + name + '</td>'
-                #out += '<td>' + ext_addr + '</td>'
-                out += '<td>' + int_addr + '</td>'
-                out += '<td>' + downloaded_kb + '</td>'
-                out += '<td>' + uploaded_kb + '</td>'
-                out += '<td>' + connected + '</td>'
+                out += '<td>%s</td>' % name
+                #out += '<td>%s</td>' % ext_addr
+                out += '<td>%s</td>' % int_addr
+                out += '<td>%s</td>' % downloaded_kb
+                out += '<td>%s</td>' % uploaded_kb
+                out += '<td>%s</td>' % connected
                 out += '</tr>';
         out += '</tbody></table>'
         return out
