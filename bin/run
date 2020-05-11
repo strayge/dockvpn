@@ -29,9 +29,8 @@ fi
     mknod /dev/net/tun c 10 200
 
 cd /etc/openvpn
-if ! [ -f ca.crt ]; then
-    /etc/easyrsa/easyrsa --batch init-pki
 
+if ! [-f pki/openssl-easyrsa.cnf ]; then
     # upgrade from old easyrsa structure
     cp -n /etc/easyrsa/openssl-easyrsa.cnf /etc/openvpn/pki/
     mkdir -p pki/revoked/certs_by_serial
@@ -40,6 +39,10 @@ if ! [ -f ca.crt ]; then
     mkdir -p pki/renewed/certs_by_serial
     mkdir -p pki/renewed/private_by_serial
     mkdir -p pki/renewed/reqs_by_serial
+fi
+
+if ! [ -f ca.crt ]; then
+    /etc/easyrsa/easyrsa --batch init-pki
 
     /etc/easyrsa/easyrsa --batch --days=7300 --keysize=4096 --req-cn="DockVPN CA" build-ca nopass
     /etc/easyrsa/easyrsa --batch --days=7300 gen-crl
