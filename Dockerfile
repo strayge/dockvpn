@@ -22,5 +22,5 @@ ENV SSL 1
 # domain name can be specified here for generating ovpn configs
 # ENV EXTERNAL_ADDRESS ""
 
-EXPOSE 1194/tcp 1194/udp 8000/tcp
+# EXPOSE 1194/tcp 1194/udp 8000/tcp
 CMD run

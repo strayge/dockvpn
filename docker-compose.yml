@@ -15,11 +15,10 @@ services:
         max-file: "2"
     volumes:
       - ./configs:/etc/openvpn
-    ports:
-      - "8000:8000/tcp"
-      - "1194:1194/tcp"
-      - "1194:1194/udp"
     environment:
+      PORT_TCP: 1195
+      PORT_UDP: 1195
+      PORT_CONTROL: 8000
       # use self-signed ssl for web control panel
       SSL: "1"
       # credentials for web control panel (disabled if missed or empty)

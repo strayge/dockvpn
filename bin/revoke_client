@@ -1,6 +1,7 @@
 #!/bin/sh
 EASYRSA_DIR=/etc/easyrsa
 OPENVPN_DIR=/etc/openvpn
+export EASYRSA_KEY_SIZE=4096 EASYRSA_CERT_EXPIRE=7200 EASYRSA_CRL_DAYS=7200 EASYRSA_CA_EXPIRE=7200
 
 NAME=$1
 [ "$NAME" ] || {
@@ -19,10 +20,7 @@ if [ "$NAME" = "server" ]; then
 fi
 
 cd "$OPENVPN_DIR"
-"$EASYRSA_DIR/easyrsa" --batch revoke $NAME
-rm "$OPENVPN_DIR/pki/reqs/$NAME.req"
-rm "$OPENVPN_DIR/pki/issued/$NAME.crt"
-rm "$OPENVPN_DIR/pki/private/$NAME.key"
+"$EASYRSA_DIR/easyrsa" --batch revoke "$NAME"
 
 "$EASYRSA_DIR/easyrsa" --batch --days=7300 gen-crl
 cp "$OPENVPN_DIR/pki/crl.pem" "$OPENVPN_DIR/"
