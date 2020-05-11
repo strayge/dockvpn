@@ -18,7 +18,7 @@ if [ "$NAME" = "server" ]; then
  exit 1
 fi
 
-cd $OPENVPN_DIR
+cd "$OPENVPN_DIR"
 "$EASYRSA_DIR/easyrsa" --batch revoke $NAME
 rm "$OPENVPN_DIR/pki/reqs/$NAME.req"
 rm "$OPENVPN_DIR/pki/issued/$NAME.crt"

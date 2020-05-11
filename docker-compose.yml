@@ -1,0 +1,29 @@
+version: '2.1'
+
+services:
+  dockvpn:
+    build: .
+    container_name: dockvpn
+    hostname: dockvpn
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "2m"
+        max-file: "2"
+    volumes:
+      - ./configs:/etc/openvpn
+    ports:
+      - "8000:8000/tcp"
+      - "1194:1194/tcp"
+      - "1194:1194/udp"
+    environment:
+      # use self-signed ssl for web control panel
+      SSL: "1"
+      # credentials for web control panel (disabled if missed or empty)
+      CONTROL_USERNAME: ""
+      CONTROL_PASSWORD: "password"
+      # custom domain/ip for client config
+      EXTERNAL_ADDRESS: ""
